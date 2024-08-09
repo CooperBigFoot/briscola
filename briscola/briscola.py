@@ -1,7 +1,7 @@
 from typing import List, Optional
-from pydantic import BaseModel
-from player import Player
-from deck import Deck, Card
+from pydantic import BaseModel, Field
+from .player import Player
+from .deck import Deck, Card
 
 
 class BriscolaGame(BaseModel):
@@ -18,31 +18,32 @@ class BriscolaGame(BaseModel):
         tricks_played (int): The number of tricks that have been played.
     """
 
-    players: List[Player]
-    deck: Deck
-    briscola_card: Card
+    players: List[Player] = Field(default_factory=list)
+    deck: Deck = Field(default_factory=Deck)
+    briscola_card: Optional[Card] = None
     current_player_index: int = 0
-    current_trick: List[Card] = []
+    current_trick: List[Card] = Field(default_factory=list)
     tricks_played: int = 0
 
     class Config:
         arbitrary_types_allowed = True  # This allows the model to accept any type
 
-    def __init__(self, player_names: List[str]):
+    def __init__(self, player_names: List[str], **data):
         """
         Initializes a new game of Briscola.
 
         Params:
             player_names (List[str]): List of player names.
+            **data: Additional data to initialize the game.
 
         Returns:
             None
         """
-        self.deck = Deck()
+        super().__init__(**data)
         self.players = [Player(name=name) for name in player_names]
+        self.deck = Deck()
         self.deal_initial_cards()
         self.briscola_card = self.deck.draw()
-        self.current_player_index = 0
 
     def deal_initial_cards(self):
         """
@@ -69,8 +70,14 @@ class BriscolaGame(BaseModel):
             None
         """
         current_player = self.players[self.current_player_index]
+
+        print(f"\n{current_player.name}'s hand before playing:")
+        print(", ".join([f"{c.rank} of {c.suit}" for c in current_player.hand]))
+
         played_card = current_player.play_card(card)
         self.current_trick.append(played_card)
+
+        print(f"{current_player.name} played: {played_card.rank} of {played_card.suit}")
 
         if len(self.current_trick) == len(self.players):
             self.resolve_trick()
@@ -117,49 +124,70 @@ class BriscolaGame(BaseModel):
 
     def determine_winning_card(self) -> Card:
         """
-        Determines the winning card for the current trick based on the briscola suit
-        and the lead suit.
+        Determines the winning card for the current trick based on the Briscola rules.
 
-        Params:
-            None
+        The winning card is determined by these rules:
+        1. If any Briscola cards are played, the highest value Briscola card wins.
+        2. If no Briscola cards are played, the highest value card of the lead suit wins.
+        3. If no cards of the lead suit or Briscola suit are played, the lead card wins.
+        4. Cards are ranked by their point value, not by their face value.
 
         Returns:
             Card: The winning card for the trick.
         """
-        lead_suit = self.current_trick[0].suit
+        lead_card = self.current_trick[0]
+        lead_suit = lead_card.suit
         briscola_cards = [
             card for card in self.current_trick if card.suit == self.briscola_card.suit
         ]
+        lead_suit_cards = [
+            card for card in self.current_trick if card.suit == lead_suit
+        ]
+
+        print(f"\nDetermining winning card:")
+        print(f"Lead card: {lead_card.rank} of {lead_card.suit}")
+        print(f"Briscola suit: {self.briscola_card.suit}")
+        print(
+            f"Cards in trick: {', '.join([f'{card.rank} of {card.suit}' for card in self.current_trick])}"
+        )
+        print(
+            f"Briscola cards in trick: {', '.join([f'{card.rank} of {card.suit}' for card in briscola_cards])}"
+        )
+        print(
+            f"Lead suit cards in trick: {', '.join([f'{card.rank} of {card.suit}' for card in lead_suit_cards])}"
+        )
 
         if briscola_cards:
-            return max(briscola_cards, key=lambda card: card.value)
+            winning_card = max(
+                briscola_cards,
+                key=lambda card: (card.value, Deck.RANKS.index(card.rank)),
+            )
+            print(f"Briscola card wins: {winning_card.rank} of {winning_card.suit}")
+            return winning_card
+        elif lead_suit_cards:
+            winning_card = max(
+                lead_suit_cards,
+                key=lambda card: (card.value, Deck.RANKS.index(card.rank)),
+            )
+            print(f"Lead suit card wins: {winning_card.rank} of {winning_card.suit}")
+            return winning_card
         else:
-            lead_cards = [card for card in self.current_trick if card.suit == lead_suit]
-            return max(lead_cards, key=lambda card: card.value)
+            print(f"Lead card wins by default: {lead_card.rank} of {lead_card.suit}")
+            return lead_card
 
     def replenish_hands(self) -> None:
         """
-        Replenishes each player's hand by drawing cards from the deck until
-        each player has three cards. The replenishment is done clockwise,
-        starting from the winner of the last trick.
-
-        This method:
-        1. Determines the starting player (winner of the last trick)
-        2. Iterates through players in clockwise order
-        3. Adds cards to each player's hand if needed and if cards are available in the deck
-
-        Params:
-            None
-
-        Returns:
-            None
+        Replenishes each player's hand with one card after a trick, if cards are available in the deck.
         """
-        start_index = self.current_player_index
-        for i in range(len(self.players)):
-            player_index = (start_index + i) % len(self.players)
-            player = self.players[player_index]
-            while len(player.hand) < 3 and len(self.deck.cards) > 0:
+        for player in self.players:
+            if self.deck.cards:  # Check if there are cards left in the deck
                 player.add_card(self.deck.draw())
+
+        print("\nHands after replenishing:")
+        for player in self.players:
+            print(
+                f"{player.name}'s hand: {', '.join([f'{card.rank} of {card.suit}' for card in player.hand])}"
+            )
 
     def is_game_over(self) -> bool:
         """

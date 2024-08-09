@@ -1,14 +1,14 @@
 from typing import List, Optional
-from pydantic import BaseModel
-from deck import Card
+from pydantic import BaseModel, Field
+from .deck import Card
 
 
 class Player(BaseModel):
     name: str
-    hand: List[Card] = []
+    hand: List[Card] = Field(default_factory=list)
     score: int = 0
-    team: Optional[int] = None  # For team-based games
-    is_ai: bool = False  # To distinguish between human and AI players
+    team: Optional[int] = None
+    is_ai: bool = False
 
     def play_card(self, card: Card) -> Card:
         """Remove and return the specified card from the player's hand."""
