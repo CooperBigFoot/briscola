@@ -2,11 +2,10 @@ from typing import List
 from briscola import BriscolaGame, Card
 
 
-
 def print_game_state(game: BriscolaGame):
     """Print the current state of the game."""
     print(f"\nCurrent player: {game.get_current_player().name}")
-    print(f"Briscola suit: {game.briscola_card.suit}")
+    print(f"Briscola card: {game.briscola_card.rank} of {game.briscola_card.suit}")
     print(f"Tricks played: {game.tricks_played}")
     print(f"Cards left in deck: {len(game.deck.cards)}")
     print("\nCurrent trick:")
@@ -49,12 +48,19 @@ def play_game():
     while not game.is_game_over():
         print_game_state(game)
         current_player = game.get_current_player()
-        print_player_hand(current_player.name, current_player.hand)
 
-        card_to_play = get_card_choice(current_player.name, current_player.hand)
-        game.play_turn(card_to_play)
+        if not current_player.hand:
+            print(f"{current_player.name} has no cards left to play.")
+            game.play_turn(None)  # Pass None to indicate no card can be played
+        else:
+            print_player_hand(current_player.name, current_player.hand)
+            card_to_play = get_card_choice(current_player.name, current_player.hand)
+            game.play_turn(card_to_play)
 
         input("Press Enter to continue...")
+
+        if game.is_game_over():
+            break
 
     winner = game.get_winner()
     print(f"\nGame over! The winner is {winner.name} with a score of {winner.score}.")

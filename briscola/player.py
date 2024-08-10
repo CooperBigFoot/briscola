@@ -9,11 +9,13 @@ class Player(BaseModel):
     score: int = 0
     team: Optional[int] = None
     is_ai: bool = False
+    played_cards: List[Card] = Field(default_factory=list)
 
     def play_card(self, card: Card) -> Card:
-        """Remove and return the specified card from the player's hand."""
+        """Remove the specified card from the player's hand and add it to played_cards."""
         if card in self.hand:
             self.hand.remove(card)
+            self.played_cards.append(card)
             return card
         raise ValueError("Card not in player's hand")
 
