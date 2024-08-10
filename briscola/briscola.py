@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 from .player import Player
 from .deck import Deck, Card
@@ -14,7 +14,11 @@ class BriscolaGame(BaseModel):
 
     def __init__(self, player_names: List[str], **data):
         super().__init__(**data)
-        self.players = [Player(name=name) for name in player_names]
+        if len(player_names) not in [2, 4]:
+            raise ValueError("Briscola requires either 2 or 4 players")
+        self.players = [
+            Player(name=name, team=(i % 2) + 1) for i, name in enumerate(player_names)
+        ]
         self.deck = Deck()
         self.deal_initial_cards()
         self.set_briscola()
@@ -22,9 +26,6 @@ class BriscolaGame(BaseModel):
     def set_briscola(self):
         """Sets the Briscola card and places it at the bottom of the deck."""
         self.briscola_card = self.deck.draw()
-        print(
-            f"The Briscola card is: {self.briscola_card.rank} of {self.briscola_card.suit}"
-        )
         self.deck.cards.insert(0, self.briscola_card)
 
     def deal_initial_cards(self):
@@ -48,18 +49,12 @@ class BriscolaGame(BaseModel):
             if self.deck.cards:
                 drawn_card = self.deck.draw()
                 player.add_card(drawn_card)
-                print(f"{player.name} draws: {drawn_card.rank} of {drawn_card.suit}")
-                if drawn_card == self.briscola_card:
-                    print(
-                        f"The Briscola card ({self.briscola_card.rank} of {self.briscola_card.suit}) has been drawn!"
-                    )
 
     def play_turn(self, card: Card) -> None:
         """Handles the logic for a player playing a card."""
         current_player = self.get_current_player()
         played_card = current_player.play_card(card)
         self.current_trick.append(played_card)
-        print(f"{current_player.name} played: {played_card.rank} of {played_card.suit}")
 
         if len(self.current_trick) == len(self.players):
             self.resolve_trick()
@@ -78,10 +73,6 @@ class BriscolaGame(BaseModel):
 
         winning_player.add_to_score(trick_points)
         self.current_player_index = self.players.index(winning_player)
-
-        print(
-            f"\n{winning_player.name} wins the trick! Points: +{trick_points}. Total score: {winning_player.score}"
-        )
 
         self.tricks_played += 1
         if not self.is_game_over():
@@ -139,29 +130,44 @@ class BriscolaGame(BaseModel):
             "players": [
                 {
                     "name": player.name,
+                    "team": player.team,
                     "score": player.score,
                     "hand_size": player.get_hand_size(),
                 }
                 for player in self.players
             ],
         }
-    
-    def get_winner(self) -> Optional[Player]:
+
+    def get_winner(self) -> Optional[Player | int]:
         """
         Determines the winner of the game based on the highest score.
+        For 1v1 games, returns the winning Player.
+        For 2v2 games, returns the winning team number.
         Returns None if the game is not over or if there's a tie.
 
         Returns:
-            Optional[Player]: The player with the highest score, or None if the game isn't over or there's a tie.
+            Optional[Player | int]: The winning Player (1v1) or team number (2v2), or None if the game isn't over or there's a tie.
         """
         if not self.is_game_over():
             return None
-        
-        max_score = max(player.score for player in self.players)
-        winners = [player for player in self.players if player.score == max_score]
-        
-        if len(winners) == 1:
-            return winners[0]
+
+        if len(self.players) == 2:
+            # 1v1 game
+            if self.players[0].score > self.players[1].score:
+                return self.players[0]
+            elif self.players[1].score > self.players[0].score:
+                return self.players[1]
+            else:
+                return None  # Tie
         else:
-            print("The game ended in a tie!")
-            return None
+            # 2v2 game
+            team_scores = {1: 0, 2: 0}
+            for player in self.players:
+                team_scores[player.team] += player.score
+
+            if team_scores[1] > team_scores[2]:
+                return 1
+            elif team_scores[2] > team_scores[1]:
+                return 2
+            else:
+                return None  # Tie
