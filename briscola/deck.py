@@ -2,23 +2,53 @@ from typing import List, ClassVar
 from pydantic import BaseModel, Field
 import random
 
+
 class Card(BaseModel):
     """Represents a single card in the Neapolitan Briscola deck."""
+
     rank: str
     suit: str
     value: int
 
+    def to_dict(self) -> dict:
+        """Converts the card to a dictionary."""
+        return {
+            "rank": self.rank,
+            "suit": self.suit,
+            "value": self.value,
+        }
+
     class Config:
         frozen = True  # Makes the card immutable
+
 
 class Deck(BaseModel):
     cards: List[Card] = Field(default_factory=list)
 
-    RANKS: ClassVar[List[str]] = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Cavallo', 'Re', 'Tre', 'Asso']
-    SUITS: ClassVar[List[str]] = ['Denari', 'Spade', 'Coppe', 'Bastoni']
+    RANKS: ClassVar[List[str]] = [
+        "Due",
+        "Quattro",
+        "Cinque",
+        "Sei",
+        "Sette",
+        "Fante",
+        "Cavallo",
+        "Re",
+        "Tre",
+        "Asso",
+    ]
+    SUITS: ClassVar[List[str]] = ["Denari", "Spade", "Coppe", "Bastoni"]
     VALUES: ClassVar[dict] = {
-        'Due': 0, 'Quattro': 0, 'Cinque': 0, 'Sei': 0, 'Sette': 0,
-        'Fante': 2, 'Cavallo': 3, 'Re': 4, 'Tre': 10, 'Asso': 11
+        "Due": 0,
+        "Quattro": 0,
+        "Cinque": 0,
+        "Sei": 0,
+        "Sette": 0,
+        "Fante": 2,
+        "Cavallo": 3,
+        "Re": 4,
+        "Tre": 10,
+        "Asso": 11,
     }
 
     def __init__(self, **data):
@@ -26,7 +56,8 @@ class Deck(BaseModel):
         if not self.cards:
             self.cards = [
                 Card(rank=rank, suit=suit, value=self.VALUES[rank])
-                for suit in self.SUITS for rank in self.RANKS
+                for suit in self.SUITS
+                for rank in self.RANKS
             ]
             random.shuffle(self.cards)
 

@@ -23,6 +23,14 @@ class BriscolaGame(BaseModel):
         self.deal_initial_cards()
         self.set_briscola()
 
+    def add_player(self, player: Player) -> None:
+        """Adds a player to the game."""
+        if len(self.players) < 4:
+            self.players.append(player)
+            if len(self.players) == 1:
+                self.deal_initial_cards()
+                self.set_briscola()
+
     def set_briscola(self):
         """Sets the Briscola card and places it at the bottom of the deck."""
         self.briscola_card = self.deck.draw()
@@ -117,16 +125,9 @@ class BriscolaGame(BaseModel):
         for player in self.players:
             player.played_cards.clear()
 
-    def get_game_state(self) -> dict:
-        """Provides a summary of the current game state."""
+    def get_game_state(self) -> Dict:
+        """Returns the current state of the game."""
         return {
-            "current_player": self.get_current_player().name,
-            "briscola_card": f"{self.briscola_card.rank} of {self.briscola_card.suit}",
-            "tricks_played": self.tricks_played,
-            "cards_left_in_deck": len(self.deck.cards),
-            "current_trick": [
-                {"rank": card.rank, "suit": card.suit} for card in self.current_trick
-            ],
             "players": [
                 {
                     "name": player.name,
@@ -136,6 +137,15 @@ class BriscolaGame(BaseModel):
                 }
                 for player in self.players
             ],
+            "current_player": (
+                self.get_current_player().name if self.get_current_player() else None
+            ),
+            "briscola_card": (
+                self.briscola_card.to_dict() if self.briscola_card else None
+            ),
+            "current_trick": [card.to_dict() for card in self.current_trick],
+            "tricks_played": self.tricks_played,
+            "cards_left_in_deck": len(self.deck.cards),
         }
 
     def get_winner(self) -> Optional[Player | int]:
