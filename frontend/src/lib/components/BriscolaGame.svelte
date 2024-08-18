@@ -13,6 +13,8 @@
 <div class="flex flex-col h-screen bg-white text-gray-900 font-sans">
 	<GameHeader />
 	<GameArea {players} {trumpCard} />
-	<PlayerHand {hand} />
+	<div class="flex-grow">
+		<PlayerHand {hand} />
+	</div>
 	<GameFooter {players} />
 </div>
