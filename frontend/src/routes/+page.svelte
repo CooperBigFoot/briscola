@@ -1,7 +1,5 @@
-<h1 class="text-3xl font-bold underline">Hello world!</h1>
+<script>
+	import BriscolaGame from '$lib/components/BriscolaGame.svelte';
+</script>
 
-<style lang="postcss">
-	:global(html) {
-		@apply bg-gray-100;
-	}
-</style>
+<BriscolaGame />
