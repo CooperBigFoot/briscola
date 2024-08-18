@@ -125,9 +125,21 @@ class BriscolaGame(BaseModel):
         for player in self.players:
             player.played_cards.clear()
 
-    def get_game_state(self) -> Dict:
+    def get_game_state(self) -> dict:
         """Returns the current state of the game."""
         return {
+            "current_player": self.get_current_player().name,
+            "briscola_card": {
+                "rank": self.briscola_card.rank,
+                "suit": self.briscola_card.suit,
+                "value": self.briscola_card.value
+            },
+            "tricks_played": self.tricks_played,
+            "cards_left_in_deck": len(self.deck.cards),
+            "current_trick": [
+                {"rank": card.rank, "suit": card.suit, "value": card.value}
+                for card in self.current_trick
+            ],
             "players": [
                 {
                     "name": player.name,
@@ -137,15 +149,6 @@ class BriscolaGame(BaseModel):
                 }
                 for player in self.players
             ],
-            "current_player": (
-                self.get_current_player().name if self.get_current_player() else None
-            ),
-            "briscola_card": (
-                self.briscola_card.to_dict() if self.briscola_card else None
-            ),
-            "current_trick": [card.to_dict() for card in self.current_trick],
-            "tricks_played": self.tricks_played,
-            "cards_left_in_deck": len(self.deck.cards),
         }
 
     def get_winner(self) -> Optional[Player | int]:
