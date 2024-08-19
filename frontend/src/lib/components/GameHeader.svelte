@@ -23,7 +23,9 @@
 		<h1 class="text-lg font-bold">Briscola 1v1</h1>
 	</div>
 	<nav class="flex space-x-4">
+		<!-- svelte-ignore a11y-invalid-attribute -->
 		<a href="#" class="text-sm text-gray-600 hover:text-blue-500">Rules</a>
+		<!-- svelte-ignore a11y-invalid-attribute -->
 		<a href="#" class="text-sm text-gray-600 hover:text-blue-500">Stats</a>
 	</nav>
 	<button class="p-1 rounded-full hover:bg-gray-100 transition-colors duration-300">
